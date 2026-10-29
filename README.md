@@ -11,6 +11,7 @@ Snowflake is retiring single-factor passwords. Human users who sign in with a pa
 ## Contents
 
 - [What it does](#what-it-does)
+- [Fixes it can run, and what it doesn't do](#fixes-it-can-run-and-what-it-doesnt-do)
 - [Quick start](#quick-start)
 - [Using the app](#using-the-app)
 - [Sign-in methods](#sign-in-methods)
@@ -34,6 +35,43 @@ Snowflake is retiring single-factor passwords. Human users who sign in with a pa
 | **Recommended fixes** | One recommendation per issue, with severity, filters (account, severity, issue type, search), and **Review & run**. Each fix shows the reason, the impact, user facts, manual steps, and the exact SQL generated on the server. Execution requires explicit confirmation. Bulk runs require typing `EXECUTE`. |
 | **Enforcement timeline** | Phase 1–3 windows from the [deprecation plan](https://docs.snowflake.com/en/user-guide/security-mfa-rollout), with pointers to where per-account dates and extensions are managed. |
 | **Audit log** | Every executed statement, its result, the account, the user, and the time. |
+
+---
+
+## Fixes it can run, and what it doesn't do
+
+### Fixes it can run
+
+Every fix shows the reason, the impact, and the exact SQL before anything executes. A single fix needs the confirm checkbox. A bulk run needs you to type `EXECUTE`. The server only runs fixes that exist in the latest snapshot and builds the SQL itself.
+
+| # | Issue it detects | Fix | SQL it runs | Notes |
+|---|---|---|---|---|
+| 1 | Human user with a password, no MFA, and password-only logins in the last 90 days (**at risk**) | Enroll in MFA | `CREATE AUTHENTICATION POLICY IF NOT EXISTS …` with `MFA_ENROLLMENT = 'REQUIRED_PASSWORD_ONLY'`, then `ALTER USER … SET AUTHENTICATION POLICY` | Needs a policy schema you supply. The user still has to enroll in Snowsight. BI tools that store this password may break. |
+| 2 | SSO user who still has a password | Remove the unused password | `ALTER USER … UNSET PASSWORD` | |
+| 3 | Human user with a password, no MFA, and no login in 90 days | Disable the user | `ALTER USER … SET DISABLED = TRUE` | Reversible with `SET DISABLED = FALSE`. |
+| 4 | Integration typed as `PERSON` (detected by name or client pattern) with no strong credential | Register a key pair | `ALTER USER … SET RSA_PUBLIC_KEY = '…'` | You paste the public key. Private keys are rejected. Non-breaking. |
+| 5 | Same as #4, but a key pair, PAT, or workload identity already exists | Remove password and convert to service | `ALTER USER … UNSET PASSWORD`, then `ALTER USER … SET TYPE = SERVICE` | Flagged **breaking** if password logins were seen recently. |
+| 6 | `LEGACY_SERVICE` user using a password | Register a key pair, then remove password and convert | Same SQL as #4, then #5 | Two staged steps. The second is offered once a strong credential exists. |
+| 7 | `LEGACY_SERVICE` user with an idle password | Disable the unused user (alternative to converting) | `ALTER USER … SET DISABLED = TRUE` | Any job still using this user will fail. |
+| 8 | `LEGACY_SERVICE` user with no password | Convert to service | `ALTER USER … SET TYPE = SERVICE` | Cleanup only. These users already count as ready. |
+| 9 | Account has no authentication policy | Set an account-level policy requiring MFA for password users | `CREATE AUTHENTICATION POLICY IF NOT EXISTS …`, then `ALTER ACCOUNT SET AUTHENTICATION POLICY` | Flagged **high impact**: applies to every user without their own policy. Needs a policy schema you supply. |
+
+Fixes for users who hold `ACCOUNTADMIN`, `SECURITYADMIN`, `ORGADMIN`, `GLOBALORGADMIN`, or `USERADMIN` directly are raised to **critical** severity.
+
+### Recommended but never run by the app
+
+- **No account-level network policy:** guidance only. The app never creates or changes network policies.
+- **Manual steps inside the fixes above:** asking users to enroll in MFA, generating key pairs, and switching connectors (Fivetran, Power BI, and so on) to key pair, PAT, or SSO. The app can register the public key, but it can't reconfigure the tool.
+
+### What it does **not** do
+
+- **Extend enforcement dates.** Extensions are requested in each account's Strong Auth Hub. The app only shows the timeline.
+- **Undo a fix.** There is no undo button. The impact text gives the reversal SQL, such as `SET DISABLED = FALSE`, and you run it yourself.
+- **Generate keys or handle private keys.** You create the key pair. The app only accepts the public key.
+- **Detect indirect admin access.** Only roles granted directly to a user escalate severity. Users who reach `ACCOUNTADMIN` through other roles aren't escalated.
+- **Match the Strong Authentication Hub exactly.** The app reads `SHOW USERS` and `ACCOUNT_USAGE`, not Trust Center findings, and `ACCOUNT_USAGE` lags up to about 2 hours. Counts can differ from the Hub. The readiness logic has been tested on demo accounts only, so compare against the Hub on a non-production account before relying on it.
+- **Keep you signed in across restarts.** Sessions are in memory only, so restarting signs out of every account.
+- **Touch accounts you haven't added.** Disabled and signed-out accounts are never queried or changed.
 
 ---
 
