@@ -236,6 +236,7 @@ function UserFacts({ user }: { user: UserRecord }) {
     ["MFA enrolled", yes(user.hasMfa)],
     ["Key pair / PAT / WIF", [user.hasRsaKey && "key pair", user.hasPat && "PAT", user.hasWorkloadIdentity && "WIF"].filter(Boolean).join(", ") || "none"],
     ["Admin roles", user.adminRoles.join(", ") || "—"],
+    ["Authentication policy", user.authPolicy ?? "—"],
     ["Last successful login", user.lastSuccessLogin ? formatDateTime(user.lastSuccessLogin) : "—"],
     ["Logins (90d)", formatNumber(user.logins90d)],
     ["Password-only logins (90d)", formatNumber(user.passwordOnlyLogins90d)],

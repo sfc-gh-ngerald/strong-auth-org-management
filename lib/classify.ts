@@ -273,6 +273,23 @@ export function fixSpec(issue: IssueCode, user: UserRecord | null, account: Mana
 
   switch (issue) {
     case "HUMAN_ACTIVE_PASSWORD_ONLY":
+      // Snowflake allows one authentication policy per user, so attaching ours would fail.
+      if (user?.authPolicy)
+        return {
+          variant: "require-mfa-existing-policy",
+          title: "Enroll in MFA (password-only human user)",
+          severity: bump("critical"),
+          rationale: `${user.name} signed in with a single-factor password in the last 90 days via ${clients} and is not enrolled in MFA. Phase 3 blocks this login.`,
+          impact: `${user.name} already has the authentication policy ${user.authPolicy}, and a user can only have one, so this app won't attach another.`,
+          manualSteps: [
+            `Ask ${user.email ?? user.name} to enroll in MFA in Snowsight (profile → Multi-factor authentication).`,
+            "If this user only signs in through a BI tool, switch that tool to SSO or OAuth instead of a stored password.",
+            `To require enrollment, check DESCRIBE AUTHENTICATION POLICY ${user.authPolicy} and set MFA_ENROLLMENT = 'REQUIRED_PASSWORD_ONLY' on it if appropriate. Other users with that policy are affected too.`,
+          ],
+          params: [],
+          executable: false,
+          build: () => [],
+        }
       return {
         variant: "require-mfa",
         title: "Enroll in MFA (password-only human user)",

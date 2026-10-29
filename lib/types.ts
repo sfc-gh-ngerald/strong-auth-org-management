@@ -88,6 +88,8 @@ export interface UserRecord {
   createdOn: string | null
   owner: string | null
   adminRoles: string[]
+  /** User-level authentication policy (DB.SCHEMA.NAME), if one is attached. Snowflake allows only one. */
+  authPolicy?: string | null
   /** Login-history signals over the last 90 days. */
   logins90d: number
   passwordOnlyLogins90d: number

@@ -282,6 +282,12 @@ async function doCollect(account: ManagedAccount, source: UserSource): Promise<A
     admins.set(g, [...(admins.get(g) ?? []), String(pick(r, "ROLE"))])
   }
 
+  const userPolicies = new Map<string, string>()
+  for (const r of policyRows ?? []) {
+    if (String(pick(r, "REF_ENTITY_DOMAIN")).toUpperCase() !== "USER") continue
+    userPolicies.set(String(pick(r, "REF_ENTITY_NAME")), `${pick(r, "POLICY_DB")}.${pick(r, "POLICY_SCHEMA")}.${pick(r, "POLICY_NAME")}`)
+  }
+
   let disabled = 0
   const users: UserRecord[] = []
   for (const r of userRows) {
@@ -308,6 +314,7 @@ async function doCollect(account: ManagedAccount, source: UserSource): Promise<A
         createdOn: iso(pick(r, "CREATED_ON")),
         owner: pick(r, "OWNER") ?? null,
         adminRoles: [...new Set(admins.get(name) ?? [])].sort(),
+        authPolicy: userPolicies.get(name) ?? null,
         logins90d: l?.ok ?? 0,
         passwordOnlyLogins90d: l?.pw ?? 0,
         lastPasswordOnlyLogin: l?.lastPw ?? null,

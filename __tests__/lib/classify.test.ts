@@ -76,6 +76,20 @@ describe("classifyUser", () => {
     expect(u.atRisk).toBe(true)
   })
 
+  it("password-only human with an existing user policy gets guidance, not a second policy", () => {
+    const at = { logins90d: 3, passwordOnlyLogins90d: 3, passwordOnlyClients: ["SNOWFLAKE_UI"] }
+    const fresh = fixSpec("HUMAN_ACTIVE_PASSWORD_ONLY", classifyUser(signals(at)), account)
+    expect(fresh.variant).toBe("require-mfa")
+    expect(fresh.executable).toBe(true)
+
+    const has = classifyUser(signals({ ...at, authPolicy: "SEC.POLICIES.EXISTING" }))
+    const spec = fixSpec("HUMAN_ACTIVE_PASSWORD_ONLY", has, account)
+    expect(spec.variant).toBe("require-mfa-existing-policy")
+    expect(spec.executable).toBe(false)
+    expect(spec.build({}, false)).toEqual([])
+    expect(spec.impact).toContain("SEC.POLICIES.EXISTING")
+  })
+
   it("SSO human with leftover password gets unset-password", () => {
     const u = classifyUser(signals({ logins90d: 4, ssoLogins90d: 4 }))
     expect(u.issues).toEqual(["HUMAN_SSO_UNPROTECTED_PASSWORD"])
