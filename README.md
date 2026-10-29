@@ -41,20 +41,20 @@ Snowflake is retiring single-factor passwords. Human users who sign in with a pa
 
 ### Prerequisites
 
-- **Node.js 20+** and npm
+- **Node.js 20+** and npm (`nvm use` picks up `.nvmrc`)
 - A desktop browser on the same machine. Sign-in opens there.
 - For each Snowflake account: a user with a role that can read `SNOWFLAKE.ACCOUNT_USAGE` (see [Per-account setup](#per-account-setup))
 
 ### Install and run
 
 ```bash
-git clone <your-repo-url> strong-auth-control-center
-cd strong-auth-control-center
+git clone https://github.com/sfc-gh-ngerald/strong-auth-org-management.git
+cd strong-auth-org-management
 npm install
 npm run dev
 ```
 
-Open **http://127.0.0.1:3000**.
+Open **http://127.0.0.1:3000**. There's nothing else to set up: no env file, no folders to create, no Snowflake objects required. The `config/` folder ships with the repo, and your account list and audit log are written there (git-ignored) the first time you add an account.
 
 The app binds to `127.0.0.1` only. It's a local tool: browser sign-in completes on a loopback port, and the app connects out to each account directly. Don't deploy it to a shared server.
 
@@ -123,7 +123,9 @@ Register every account you manage. Each row shows the auth method, the sign-in s
 
 The overview collects from every in-scope account in parallel. It refreshes automatically when you open it and when an account newly comes into scope. It also polls while any enabled account is still waiting for sign-in. **Refresh all** re-collects everything, and the icon on each account row refreshes just that account.
 
+<!-- Add docs/screenshots/posture-and-fixes.png, then uncomment:
 ![Account posture, recommended fixes, and enforcement timeline](docs/screenshots/posture-and-fixes.png)
+-->
 
 Enabled accounts that are signed out are listed with a **Sign in** link. They're left out of every number until you sign in.
 
@@ -148,7 +150,9 @@ Click **Review & run** on any recommendation. The side panel shows:
 
 Tick **I reviewed this SQL…** and click **Execute**. Statements run in order and stop at the first failure, and the result of each statement is shown and written to the audit log.
 
+<!-- Add docs/screenshots/fix-review.png, then uncomment:
 ![Fix review panel](docs/screenshots/fix-review.png)
+-->
 
 **Bulk runs:** tick several fixes that need no input, click **Run selected**, and type `EXECUTE` to confirm.
 
@@ -247,9 +251,10 @@ The app follows the Strong Authentication Hub's categories, using `SNOWFLAKE.ACC
 |---|---|
 | Account registry | `config/accounts.json`. Written with `chmod 600`. Holds paths and metadata only. |
 | Audit log | `config/audit-log.jsonl` |
-| Move both elsewhere | `SACC_CONFIG_DIR=/secure/path npm run dev` |
+| Example file | `config/accounts.example.json`, a starting point for **Import JSON** |
+| Move both elsewhere | `SACC_CONFIG_DIR=/secure/path npm run dev`, or copy `.env.example` to `.env.local` |
 
-`config/` is in `.gitignore`. To share a setup with teammates, share an **Import JSON** file instead. Each person signs in with their own identity, or uses their own credential files.
+Only `config/README.md` and `config/accounts.example.json` are tracked. Everything else in `config/` is git-ignored, so your accounts and audit history never reach the repo. To share a setup with teammates, share an **Import JSON** file instead. Each person signs in with their own identity, or uses their own credential files.
 
 ---
 
@@ -278,8 +283,6 @@ npx tsc --noEmit         # typecheck
 npm run build            # production build
 ```
 
-If `SNOWFLAKE_DEFAULT_CONNECTION_NAME` is set in your shell, one inherited template test fails. Run `env -u SNOWFLAKE_DEFAULT_CONNECTION_NAME npm test`.
-
 | Path | Purpose |
 |---|---|
 | `lib/types.ts` | Shared types |
@@ -291,11 +294,11 @@ If `SNOWFLAKE_DEFAULT_CONNECTION_NAME` is set in your shell, one inherited templ
 | `app/api/*` | Accounts (CRUD, test, sign-in/out, import), overview, execute, audit |
 | `components/accounts`, `components/overview`, `components/audit-log.tsx` | UI |
 
-Built on the Snowflake App Runtime Next.js template (Next.js 16, React 19, Tailwind 4, shadcn/ui, Recharts, `snowflake-sdk` 3.4).
+Built with Next.js 16, React 19, Tailwind 4, shadcn/ui, Recharts, and `snowflake-sdk` 3.4 (started from the Snowflake App Runtime Next.js template).
 
 ### Screenshots
 
-README images live in `docs/screenshots/`:
+README images live in `docs/screenshots/`. To add the two that aren't there yet, save them with these names and uncomment the image lines in this README:
 
 | File | Shows |
 |---|---|

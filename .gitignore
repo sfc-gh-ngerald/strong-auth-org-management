@@ -11,8 +11,10 @@ next-env.d.ts
 .env
 .DS_Store
 
-# Local account registry + audit log (paths and metadata only, but machine-specific)
-config/
+# Local account registry + audit log stay on your machine; the folder scaffold is committed
+config/*
+!config/README.md
+!config/accounts.example.json
 
 # Never commit credentials
 *.p8

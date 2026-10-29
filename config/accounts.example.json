@@ -1,0 +1,24 @@
+[
+  {
+    "label": "Prod (browser sign-in)",
+    "accountUrl": "https://myorg-prod_account.snowflakecomputing.com",
+    "authType": "OAUTH",
+    "role": "ACCOUNTADMIN"
+  },
+  {
+    "label": "Dev (SSO)",
+    "accountUrl": "https://myorg-dev_account.snowflakecomputing.com",
+    "authType": "SSO",
+    "role": "STRONG_AUTH_ADMIN",
+    "warehouse": "ADMIN_WH",
+    "policySchema": "SECURITY_DB.POLICIES"
+  },
+  {
+    "label": "Sandbox (key pair, unattended)",
+    "accountUrl": "https://myorg-sandbox.snowflakecomputing.com",
+    "user": "STRONG_AUTH_ADMIN_SVC",
+    "authType": "KEYPAIR",
+    "credentialPath": "~/.snowflake/keys/strong_auth_admin.p8",
+    "role": "STRONG_AUTH_ADMIN"
+  }
+]

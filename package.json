@@ -40,5 +40,8 @@
     "axios": "^1.16.1",
     "postcss": "^8.5.15"
   },
-  "description": "Local admin console for Snowflake strong-authentication (MFA / LEGACY_SERVICE) readiness and remediation across many accounts."
+  "description": "Local admin console for Snowflake strong-authentication (MFA / LEGACY_SERVICE) readiness and remediation across many accounts.",
+  "engines": {
+    "node": ">=20"
+  }
 }
