@@ -1,4 +1,4 @@
-import { deleteAccount, updateAccount, ValidationError } from "@/lib/server/accounts"
+import { deleteAccount, getAccount, updateAccount, ValidationError } from "@/lib/server/accounts"
 import { dropConnection, toView } from "@/lib/server/connections"
 import { forgetSnapshot } from "@/lib/server/collect"
 
@@ -12,7 +12,7 @@ export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }
     forgetSnapshot(id)
     return Response.json(toView(account))
   } catch (e) {
-    const status = e instanceof ValidationError ? 400 : 500
+    const status = e instanceof ValidationError || e instanceof SyntaxError ? 400 : 500
     if (status === 500) console.error(new Date().toISOString(), "[accounts] update failed", e)
     return Response.json({ error: e instanceof Error ? e.message : "Failed to update account" }, { status })
   }
@@ -21,6 +21,7 @@ export async function PUT(req: Request, ctx: { params: Promise<{ id: string }> }
 export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params
   try {
+    if (!(await getAccount(id))) return Response.json({ error: "Account not found." }, { status: 404 })
     await deleteAccount(id)
     dropConnection(id)
     forgetSnapshot(id)

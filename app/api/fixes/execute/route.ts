@@ -15,7 +15,7 @@ export async function POST(req: Request) {
       return Response.json({ error: "Execution requires confirm: true." }, { status: 400 })
     return Response.json(await executeFix({ accountId, fixKey, params: safeParams, dryRun: isDryRun }))
   } catch (e) {
-    const status = e instanceof ExecutionError ? e.status : 500
+    const status = e instanceof ExecutionError ? e.status : e instanceof SyntaxError ? 400 : 500
     if (status === 500) console.error(new Date().toISOString(), "[fixes] execute failed", e)
     return Response.json({ error: e instanceof Error ? e.message : "Execution failed" }, { status })
   }

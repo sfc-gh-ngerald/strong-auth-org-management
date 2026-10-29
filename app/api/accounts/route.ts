@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     const account = await createAccount(await req.json())
     return Response.json(toView(account), { status: 201 })
   } catch (e) {
-    const status = e instanceof ValidationError ? 400 : 500
+    const status = e instanceof ValidationError || e instanceof SyntaxError ? 400 : 500
     if (status === 500) console.error(new Date().toISOString(), "[accounts] create failed", e)
     return Response.json({ error: e instanceof Error ? e.message : "Failed to create account" }, { status })
   }

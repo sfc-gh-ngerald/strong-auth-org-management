@@ -113,10 +113,15 @@ export function validateInput(input: Partial<ManagedAccountInput>): ManagedAccou
 
 export class ValidationError extends Error {}
 
+/** Same account URL and user. Snowflake user names are case-insensitive. */
+function sameAccount(a: Pick<ManagedAccountInput, "accountUrl" | "user">, b: Pick<ManagedAccountInput, "accountUrl" | "user">) {
+  return a.accountUrl.toLowerCase() === b.accountUrl.toLowerCase() && a.user.toUpperCase() === b.user.toUpperCase()
+}
+
 export async function createAccount(input: Partial<ManagedAccountInput>): Promise<ManagedAccount> {
   const clean = validateInput(input)
   const accounts = await listAccounts()
-  if (accounts.some((a) => a.accountUrl.toLowerCase() === clean.accountUrl.toLowerCase() && a.user === clean.user))
+  if (accounts.some((a) => sameAccount(a, clean)))
     throw new ValidationError("An account with this URL and user already exists.")
   const now = new Date().toISOString()
   const account: ManagedAccount = { ...clean, id: randomUUID(), createdAt: now, updatedAt: now }
@@ -153,9 +158,7 @@ export async function importAccounts(rows: unknown[]): Promise<{ added: number; 
     } catch (e: any) {
       throw new ValidationError(`Row ${i + 1}: ${e.message}`)
     }
-    const dup = [...existing, ...toAdd].some(
-      (a) => a.accountUrl.toLowerCase() === clean.accountUrl.toLowerCase() && a.user === clean.user
-    )
+    const dup = [...existing, ...toAdd].some((a) => sameAccount(a, clean))
     if (dup) skipped++
     else toAdd.push({ ...clean, id: randomUUID(), createdAt: now, updatedAt: now })
   })
