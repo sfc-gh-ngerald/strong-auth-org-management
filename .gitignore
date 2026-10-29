@@ -21,3 +21,6 @@ config/*
 *.pem
 *.key
 *.token
+
+# Local agent handoff notes (contain customer context; never commit)
+HANDOFF.md
