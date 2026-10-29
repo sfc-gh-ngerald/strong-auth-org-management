@@ -292,11 +292,11 @@ function ClientChart({ data }: { data: OrgOverview["passwordOnlyClients"] }) {
     <Card className="min-w-0">
       <CardHeader>
         <CardTitle>Single-factor password logins by client</CardTitle>
-        <CardDescription>Distinct users per reported client type, last 90 days — these break at enforcement</CardDescription>
+        <CardDescription>Users who aren't ready, per reported client type, last 90 days. These logins break at enforcement.</CardDescription>
       </CardHeader>
       <CardContent>
         {rows.length === 0 ? (
-          <EmptyState title="No password-only logins" description="No successful single-factor password logins in the last 90 days." />
+          <EmptyState title="Nothing will break" description="No user who isn't ready has a single-factor password login in the last 90 days." />
         ) : (
           <div style={{ height: Math.max(220, rows.length * 34 + 40) }}>
             <ResponsiveContainer width="100%" height="100%">

@@ -251,7 +251,8 @@ async function doCollect(account: ManagedAccount, source: UserSource): Promise<A
     kp: number; pat: number; failed: number; pwClients: Set<string>
   }
   const logins = new Map<string, Agg>()
-  const clientUsers = new Map<string, { users: Set<string>; logins: number }>()
+  // Per client: password-only login count per user.
+  const clientUsers = new Map<string, Map<string, number>>()
   for (const r of loginRows) {
     const user = String(pick(r, "USER_NAME") ?? "")
     const client = String(pick(r, "CLIENT") ?? "UNKNOWN")
@@ -268,9 +269,8 @@ async function doCollect(account: ManagedAccount, source: UserSource): Promise<A
     a.failed += num(pick(r, "FAILED"))
     if (pw > 0) {
       a.pwClients.add(client)
-      const c = clientUsers.get(client) ?? { users: new Set<string>(), logins: 0 }
-      c.users.add(user)
-      c.logins += pw
+      const c = clientUsers.get(client) ?? new Map<string, number>()
+      c.set(user, (c.get(user) ?? 0) + pw)
       clientUsers.set(client, c)
     }
     logins.set(user, a)
@@ -361,8 +361,14 @@ async function doCollect(account: ManagedAccount, source: UserSource): Promise<A
     }
   }
 
+  // Only users who aren't ready break at enforcement; MFA-enrolled users may still show old password-only logins.
+  const notReady = new Set(users.filter((u) => !u.ready).map((u) => u.name))
   const passwordOnlyClients: ClientBreakdown[] = [...clientUsers.entries()]
-    .map(([client, v]) => ({ client, users: v.users.size, logins: v.logins }))
+    .map(([client, perUser]) => {
+      const names = [...perUser.keys()].filter((n) => notReady.has(n))
+      return { client, users: names.length, logins: names.reduce((s, n) => s + (perUser.get(n) ?? 0), 0) }
+    })
+    .filter((c) => c.users > 0)
     .sort((a, b) => b.users - a.users)
 
   const applied = await recentlyAppliedFixes()
