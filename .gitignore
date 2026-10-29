@@ -24,3 +24,6 @@ config/*
 
 # Local agent handoff notes (contain customer context; never commit)
 HANDOFF.md
+
+# Snowflake Node driver log (account and connection details)
+snowflake.log

@@ -46,7 +46,7 @@ Every fix shows the reason, the impact, and the exact SQL before anything execut
 
 | # | Issue it detects | Fix | SQL it runs | Notes |
 |---|---|---|---|---|
-| 1 | Human user with a password, no MFA, and password-only logins in the last 90 days (**at risk**) | Enroll in MFA | `CREATE AUTHENTICATION POLICY IF NOT EXISTS …` with `MFA_ENROLLMENT = 'REQUIRED_PASSWORD_ONLY'`, then `ALTER USER … SET AUTHENTICATION POLICY` | Needs a policy schema you supply. The user still has to enroll in Snowsight. BI tools that store this password may break. |
+| 1 | Human user with a password, no MFA, and password-only logins in the last 90 days (**at risk**) | Enroll in MFA | `CREATE AUTHENTICATION POLICY IF NOT EXISTS …` with `MFA_ENROLLMENT = 'REQUIRED_PASSWORD_ONLY'`, then `ALTER USER … SET AUTHENTICATION POLICY` | Needs a policy schema you supply. The user still has to enroll in Snowsight. BI tools that store this password may break. If the user already has a user-level authentication policy, this becomes guidance only: Snowflake allows one policy per user, so the app won't attach another. |
 | 2 | SSO user who still has a password | Remove the unused password | `ALTER USER … UNSET PASSWORD` | |
 | 3 | Human user with a password, no MFA, and no login in 90 days | Disable the user | `ALTER USER … SET DISABLED = TRUE` | Reversible with `SET DISABLED = FALSE`. |
 | 4 | Integration typed as `PERSON` (detected by name or client pattern) with no strong credential | Register a key pair | `ALTER USER … SET RSA_PUBLIC_KEY = '…'` | You paste the public key. Private keys are rejected. Non-breaking. |
@@ -72,6 +72,9 @@ Fixes for users who hold `ACCOUNTADMIN`, `SECURITYADMIN`, `ORGADMIN`, `GLOBALORG
 - **Match the Strong Authentication Hub exactly.** The app reads `SHOW USERS` and `ACCOUNT_USAGE`, not Trust Center findings, and `ACCOUNT_USAGE` lags up to about 2 hours. Counts can differ from the Hub. The readiness logic has been tested on demo accounts only, so compare against the Hub on a non-production account before relying on it.
 - **Keep you signed in across restarts.** Sessions are in memory only, so restarting signs out of every account.
 - **Touch accounts you haven't added.** Disabled and signed-out accounts are never queried or changed.
+- **Guess when it can't see the data.** If the role can't see user authentication details or read `LOGIN_HISTORY`, the account shows an error with no fixes rather than a misleading readiness number. Use a role with `IMPORTED PRIVILEGES` on `SNOWFLAKE` that can see all users.
+- **Cancel a browser sign-in in progress.** If you close the login tab, the account stays in "Waiting for browser sign-in" until the 3-minute timeout, then you can sign in again.
+- **Fully validate RSA public keys.** A pasted key is checked for format and length only. Snowflake rejects an invalid key when the fix runs, and the error is shown.
 
 ---
 
@@ -301,6 +304,8 @@ Only `config/README.md` and `config/accounts.example.json` are tracked. Everythi
 | Symptom | Fix |
 |---|---|
 | Sign-in never completes | Finish the login in the browser tab that opened. The app waits up to 3 minutes. Make sure nothing blocks `http://127.0.0.1:<port>` callbacks. |
+| "The browser sign-in didn't complete" | The login tab was closed or timed out. Click **Sign in** again. |
+| "Readiness can't be determined" | The role can't see user authentication details or read `ACCOUNT_USAGE.LOGIN_HISTORY`. Grant `IMPORTED PRIVILEGES` on `SNOWFLAKE`, or sign in with `ACCOUNTADMIN` / `SECURITYADMIN`. |
 | `ACCOUNTADMIN` refused over OAuth | The account blocks privileged roles for OAuth. Use SSO, or a custom role such as `STRONG_AUTH_ADMIN`. |
 | "Signed in as X, but this account is configured for Y" | Sign in as the configured user, or clear the account's **User** field. |
 | "No active warehouse" | Set a **Warehouse** on the account, or give the user a default: `ALTER USER … SET DEFAULT_WAREHOUSE = …` |
