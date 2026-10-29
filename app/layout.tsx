@@ -8,7 +8,7 @@ import "./globals.css"
 
 // Sets the dark class before first paint so dark mode never flashes light.
 // Keep in sync with components/theme-provider.tsx (localStorage key "theme").
-const THEME_SCRIPT = `try{var t=localStorage.getItem("theme");if(t==="dark"||((!t||t==="system")&&matchMedia("(prefers-color-scheme: dark)").matches))document.documentElement.classList.add("dark")}catch(e){}`
+const THEME_SCRIPT = `try{var t=localStorage.getItem("theme");if(t==="dark"||(t==="system"&&matchMedia("(prefers-color-scheme: dark)").matches))document.documentElement.classList.add("dark")}catch(e){}`
 
 export const metadata: Metadata = {
   title: APP_TITLE,
