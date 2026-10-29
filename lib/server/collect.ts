@@ -1,6 +1,7 @@
 import { promises as fs } from "fs"
 import path from "path"
 import { randomUUID } from "crypto"
+import { redactForLog } from "@/lib/server/redact"
 import type {
   AccountPosture,
   AccountSnapshot,
@@ -469,12 +470,19 @@ export async function readAudit(limit = 500): Promise<AuditEntry[]> {
     return raw
       .split("\n")
       .filter(Boolean)
-      .map((l) => JSON.parse(l) as AuditEntry)
+      .map((l) => redactEntry(JSON.parse(l) as AuditEntry))
       .reverse()
       .slice(0, limit)
   } catch (e: any) {
     if (e?.code === "ENOENT") return []
     throw e
+  }
+}
+
+function redactEntry(e: AuditEntry): AuditEntry {
+  return {
+    ...e,
+    statements: e.statements.map((s) => ({ ...s, sql: redactForLog(s.sql), ...(s.error ? { error: redactForLog(s.error) } : {}) })),
   }
 }
 
@@ -561,8 +569,11 @@ export async function executeFix(opts: {
     statements,
   }
   if (!opts.dryRun) {
-    await appendAudit(entry)
+    const logged = redactEntry(entry)
+    await appendAudit(logged)
     if (ok) fix.appliedAt = entry.at
+    return logged
   }
+  // Dry runs return the full SQL so it can be reviewed before execution.
   return entry
 }

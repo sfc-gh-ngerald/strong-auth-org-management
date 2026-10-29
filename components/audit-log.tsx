@@ -70,7 +70,7 @@ export function AuditLog() {
                     <TableCell className="max-w-xl">
                       <ul className="space-y-1">
                         {e.statements.map((s, i) => (
-                          <li key={i} className="font-mono text-xs">
+                          <li key={i} className="font-mono text-xs break-all">
                             <span className={s.ok ? undefined : "text-destructive"}>{s.sql}</span>
                             {s.error && <span className="block break-words text-destructive">{s.error}</span>}
                           </li>

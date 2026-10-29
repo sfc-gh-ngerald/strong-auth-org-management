@@ -201,7 +201,7 @@ Tick **I reviewed this SQL…** and click **Execute**. Statements run in order a
 
 ### 4. Audit log
 
-**Audit log** lists every execution with its timestamp, account, user, fix, and each statement with its result. It is stored locally in `config/audit-log.jsonl`.
+**Audit log** lists every execution with its timestamp, account, user, fix, and each statement with its result. It is stored locally in `config/audit-log.jsonl`. Public keys registered by a fix are logged as their SHA-256 fingerprint, which matches `RSA_PUBLIC_KEY_FP` in `DESCRIBE USER`, not the full key.
 
 ---
 
