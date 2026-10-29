@@ -108,6 +108,10 @@ const PRIVILEGED = ["ACCOUNTADMIN", "SECURITYADMIN", "ORGADMIN", "GLOBALORGADMIN
 
 function cleanError(err: unknown, a?: ManagedAccount): string {
   let msg = (err instanceof Error ? err.message : String(err)).replace(/\s+/g, " ").trim()
+  // The driver reports a closed, abandoned, or timed-out browser login this way.
+  if (a && isInteractive(a.authType) && /connection was never established|browser action timed out|timed out/i.test(msg)) {
+    return `The browser sign-in for ${a.label} didn't complete (the tab was closed or it timed out after 3 minutes). Click Sign in to try again. Driver message: ${msg}`
+  }
   if (a?.authType === "OAUTH" && PRIVILEGED.includes(a.role.toUpperCase()) && /block|scope|role|consent|not allowed|invalid/i.test(msg)) {
     msg +=
       ` — if ${a.role} was refused, this account may block privileged roles for OAuth (OAUTH_ADD_PRIVILEGED_ROLES_TO_BLOCKED_LIST).` +
