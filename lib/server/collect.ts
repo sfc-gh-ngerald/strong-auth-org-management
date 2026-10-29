@@ -145,6 +145,21 @@ async function fetchUsers(
       CREATED_ON: pick(r, "created_on"),
       OWNER: pick(r, "owner"),
     }))
+  // SHOW USERS lists every user but leaves auth attributes empty for users the role can't fully see.
+  // Classifying those rows would report hidden password users as ready, so don't use them.
+  const hidden = rows.filter((r) => r.HAS_PASSWORD == null).length
+  if (hidden) {
+    const why = `SHOW USERS hides authentication details (password, MFA, type) for ${hidden} of ${rows.length} users from this role`
+    let auRows: Record<string, any>[]
+    try {
+      auRows = await runSql(account, Q_USERS)
+    } catch (e: any) {
+      throw new Error(
+        `${why}, and ACCOUNT_USAGE isn't readable (${e?.message ?? e}). Readiness can't be determined. Use a role with IMPORTED PRIVILEGES on database SNOWFLAKE that can see all users, such as ACCOUNTADMIN or SECURITYADMIN.`
+      )
+    }
+    return { rows: auRows, used: "account_usage", note: `${why}; used ACCOUNT_USAGE.USERS instead (can lag up to ~2 hours)` }
+  }
   let note = "Live (SHOW USERS)"
   try {
     const [c] = await runSql(account, Q_USER_COUNT_AU)
@@ -200,13 +215,35 @@ async function doCollect(account: ManagedAccount, source: UserSource): Promise<A
     }
   }
 
+  const LOGIN_SECTION = "Login history (90 days)"
   const [loginRows, adminRows, policyRows, netRows, integrationRows] = await Promise.all([
-    section("Login history (90 days)", () => runSql(account, Q_LOGINS), [] as Record<string, any>[]),
+    section(LOGIN_SECTION, () => runSql(account, Q_LOGINS), [] as Record<string, any>[]),
     section("Admin role grants", () => runSql(account, Q_ADMINS), [] as Record<string, any>[]),
     section("Authentication policy references", () => runSql(account, Q_AUTH_POLICY_REFS), null as Record<string, any>[] | null),
     section("Account network policy", () => runSql(account, Q_NETWORK_POLICY), null as Record<string, any>[] | null),
     section("Security integrations", () => runSql(account, Q_INTEGRATIONS), [] as Record<string, any>[]),
   ])
+
+  // Without login history every password user would look dormant and get a "disable" fix,
+  // including people who sign in daily. Refuse to classify instead.
+  const loginError = sectionErrors.find((s) => s.section === LOGIN_SECTION)
+  if (loginError) {
+    return {
+      ...base,
+      userSource,
+      userSourceNote,
+      status: "error",
+      error: `Can't read SNOWFLAKE.ACCOUNT_USAGE.LOGIN_HISTORY, so readiness can't be determined safely. Grant IMPORTED PRIVILEGES on database SNOWFLAKE to this role. (${loginError.message})`,
+      sectionErrors,
+      collectedAt: new Date().toISOString(),
+      durationMs: Date.now() - started,
+      metrics: null,
+      posture: null,
+      passwordOnlyClients: [],
+      users: [],
+      fixes: [],
+    }
+  }
 
   // Login signals per user, and password-only usage per client.
   type Agg = {
