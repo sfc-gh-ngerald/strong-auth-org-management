@@ -1,0 +1,21 @@
+# Dependencies and build output
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# Local env and OS files
+.env*.local
+.env
+.DS_Store
+
+# Local account registry + audit log (paths and metadata only, but machine-specific)
+config/
+
+# Never commit credentials
+*.p8
+*.pem
+*.key
+*.token
